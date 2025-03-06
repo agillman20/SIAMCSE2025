@@ -22,9 +22,10 @@ err = norm(Aall-U*Aall(J(1:k),:));
 
 fprintf(1,'err = %12.5e\n', err)
 
-plot(C(1,ind),C(4,ind),'r-')
+plot(C(1,ind),C(4,ind),'r-','LineWidth',4)
 hold on
-plot(C(1,indoffd),C(4,indoffd),'b-')
+plot(C(1,indoffd),C(4,indoffd),'b-','LineWidth',4)
+plot(C(1,ind(J(1:k))),C(4,ind(J(1:k))),'cx','LineWidth',2)
 
 return
 end
