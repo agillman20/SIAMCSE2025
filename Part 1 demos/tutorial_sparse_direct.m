@@ -20,11 +20,11 @@ return
 function DRIVER_2D
 
 %%% Set problem parameters.
-n2    = 21;
-n1    = 21;
-h     = 1/(n2-1);
-L1    = h*(n1-1);
-L2    = 1;
+n2    = 11;
+n1    = 31;
+h     = 1/(n1-1);
+L1    = 1;
+L2    = h*(n2-1);
 ntot  = n1*n2;
 
 %%% Build the finite difference matrix.
@@ -62,6 +62,52 @@ fprintf(1,'amd: nnz(L) = %d\n',nnz(L))
 [L3,U3,I3,J3] = lu(A(p3,p3),'vector');
 fprintf(1,'symrcm: nnz(L) = %d\n',nnz(L))
 
+keyboard
+
+%%% Set problem parameters.
+n2    = 160;
+n1    = 41;
+h     = 1/(n1-1);
+L1    = 1;
+L2    = h*(n2-1);
+ntot  = n1*n2;
+
+%%% Build the finite difference matrix.
+D1    = spdiags(ones(n1,1)*[-1,2,-1],-1:1,n1,n1);
+D2    = spdiags(ones(n2,1)*[-1,2,-1],-1:1,n2,n2);
+A     = (1/(h*h))*(kron(D1,speye(n2,n2)) + ...
+                   kron(speye(n1,n1),D2));
+
+%%% Build the mesh.
+[XX1,XX2] = meshgrid(linspace(0,L1,n1),linspace(0,L2,n2));
+xx        = [reshape(XX1,1,ntot);...
+             reshape(XX2,1,ntot)];
+
+plot(xx(1,:),xx(2,:),'k.','MarkerSize',20)
+I1 = find(xx(1,:) < (0.5 - 0.5*h));
+I2 = find(xx(1,:) > (0.5 + 0.5*h));
+I3 = find((xx(1,:) < 0.5 + 0.5*h) & ... 
+          (xx(1,:) > 0.5 - 0.5*h));
+hold off
+plot(xx(1,I1),xx(2,I1),'c.',...
+     xx(1,I2),xx(2,I2),'b.',...
+     xx(1,I3),xx(2,I3),'r.',...
+     'MarkerSize',20)
+axis equal
+legend('I1','I2','I3')
+
+S = full(A(I3,I3) - A(I3,I1)*(A(I1,I1)\A(I1,I3)) ...
+                  - A(I3,I2)*(A(I2,I2)\A(I2,I3)));
+
+keyboard
+nhalf = round(n2/2);
+semilogy(svd(S(1:nhalf,(nhalf+1):end)),'k.','MarkerSize',20)
+keyboard
+plot_BS_ranks(S,20,n2/20,1e-8);
+keyboard
+plot_HODLR_ranks(S,n2/8,3,1e-8)
+keyboard
+plot_HODLR_ranks(inv(S),n2/8,3,1e-8)
 keyboard
 
 return
@@ -555,4 +601,76 @@ D  = (c*(1./c)')./(dX+(eye(N+1)));      % off-diagonal entries
 D  = D - diag(sum(D'));                 % diagonal entries
 
 return
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% This function displays the ranks of a block separable matrix.
+% The inputs are:
+%    A   : the input matrix
+%    b   : block size
+%    n   : the number of blocks
+%    tol : the cutoff for numerical rank
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function plot_BS_ranks(A,b,n,tol)
+
+ntot = size(A,1);
+
+figure(1)
+hold off
+plot([1;1]*linspace(0,ntot,n+1),[0;ntot]*ones(1,n+1),'k',...
+     [0;ntot]*ones(1,n+1),[1;1]*linspace(0,ntot,n+1),'k',...
+     'LineWidth',2)
+axis ij
+axis equal
+axis([0,ntot,0,ntot] + 5*[-1,1,-1,1])
+axis off
+hold on
+for ibox = 1:n
+  indi = (ibox-1)*b + (1:b);
+  for jbox = 1:n %[1:(ibox-1),(ibox+1):n]
+    indj = (jbox-1)*b + (1:b);
+    text((ibox-0.5)*b,(jbox-0.5)*b,sprintf('%d',sum(svd(A(indi,indj)) > tol)))
+  end
+end
+
+return
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function plot_HODLR_ranks(A,b,L,tol)
+
+ntot = size(A,1);
+
+figure(1)
+subplot(1,1,1)
+hold off
+plot([0,ntot,ntot,0,0],[0,0,ntot,ntot,0],'k',...
+    'LineWidth',2)
+axis ij
+axis equal
+axis([0,ntot,0,ntot] + 5*[-1,1,-1,1])
+axis off
+hold on
+for ilevel = 1:L
+  m = b*(2^(L-ilevel));
+  for ibox = 1:2^ilevel
+    jbox = ibox + 1 - 2*mod(ibox+1,2);
+    indi = (ibox-1)*m + (1:m);
+    indj = (jbox-1)*m + (1:m);
+    text((ibox - 0.5)*m,(jbox-0.5)*m,...
+         sprintf('%d',sum(svd(A(indi,indj)) > tol)))
+    plot((ibox - 1)*m + [0,m,m,0,0],(jbox-1)*m + [0,0,m,m,0],'k',...
+         'LineWidth',2)
+  end
+end
+for ibox = 1:2^L
+  ind = (ibox-1)*b + (1:b);
+  text((ibox - 0.5)*m,(ibox-0.5)*m,sprintf('%d',sum(svd(A(ind,ind)) > tol)))
+end
+
+title(sprintf('HODLR ranks (tol=%8.1e)',tol))
+hold off
+
+return
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
