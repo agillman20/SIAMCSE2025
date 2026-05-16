@@ -1,0 +1,11 @@
+#!/bin/bash
+cd "$(dirname "${BASH_SOURCE[0]}")"
+python3 -m venv venv
+source venv/bin/activate
+
+pip install --upgrade pip
+pip install numpy scipy
+pip install librla==1.0.1
+pip install matplotlib
+
+###pip intall jupyter

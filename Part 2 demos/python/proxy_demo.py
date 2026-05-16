@@ -2,6 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.linalg.interpolative as sli
 from numpy import linalg as LA
+from demo_utils import id_error
+from librla import id_sketch
+
 
 def proxy_demo():
 
@@ -31,10 +34,7 @@ def proxy_demo():
        radius_rel,indoffd,nproxy,acc)
      
 # check the approximation
-     B = sli.reconstruct_skel_matrix(np.transpose(Aall), k, J)
-     B = np.transpose(B)
-      
-     err = LA.norm(Aall-np.dot(U, B))
+     err = id_error(np.transpose(Aall), k, J, U)
      print('err is:', err)
  
  # plot the geometries of interest         
@@ -59,10 +59,8 @@ def  create_proxy_factor(C,ww,ind,radius_rel,indoffd,nproxy,acc):
 
      Atmp = np.bmat([[Anear,Aproxy]])
        
-     [k, J, proj] = sli.interp_decomp(np.transpose(Atmp), acc)
+     [k, J, U] = id_sketch(np.transpose(Atmp), acc)
      
-     U = sli.reconstruct_interp_matrix(J, proj)
-     U = np.transpose(U)
 
      return [Cproxy,U,k,J,indnear,indfar]
 

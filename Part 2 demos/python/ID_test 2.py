@@ -2,8 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.linalg.interpolative as sli
 from numpy import linalg as LA
-from demo_utils import id_error
-from librla import id_sketch
+import demo_utils
 
 def ID_test():
 
@@ -25,23 +24,21 @@ def ID_test():
      Aall = construct_A_offd(C,ww,ind,indoffd)
      
 # create the ID factorization using SciPy
-
-#     [k, J, proj] = sli.interp_decomp(np.transpose(Aall), acc)
+'''
+     [k, J, proj] = sli.interp_decomp(np.transpose(Aall), acc)
 # validate the result
-#     B = sli.reconstruct_skel_matrix(np.transpose(Aall), k, J)
-#     B = np.transpose(B)
-#     P = sli.reconstruct_interp_matrix(J, proj)
-#     P = np.transpose(P)
-#     err = LA.norm(Aall-np.dot(P,B))
-
+     B = sli.reconstruct_skel_matrix(np.transpose(Aall), k, J)
+     B = np.transpose(B)
+     P = sli.reconstruct_interp_matrix(J, proj)
+     P = np.transpose(P)
+     err = LA.norm(Aall-np.dot(P,B))
+'''
 
 # create ID using librla
-     [k, J, P] = id_sketch(np.transpose(Aall), acc)
-     err = id_error(np.transpose(Aall), k, J, P)
+     k, J, P = id_sketch(np.transpose(Aall), acc)
+     err = demo_utlis.id_error(Aall, k, J, P)
      
-     print('k is:' , k)
      print('err is:', err)
-     print('size(P) =',np.shape(P)) 
           
 # plot the geometry          
      plt.figure()    
