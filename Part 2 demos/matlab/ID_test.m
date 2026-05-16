@@ -16,9 +16,11 @@ indoffd = 1:1750;
 Aall = LOCAL_construct_A_offd(C,ww,ind,indoffd);
 
 
-[U,J,k] = constructID(Aall,acc);
+[k, J, U] = librla.id_sketch(Aall.', acc);
 
-err = norm(Aall-U*Aall(J(1:k),:));
+err = norm(Aall(J(k+1:end),:)-U.'*Aall(J(1:k),:));
+
+
 
 fprintf(1,'err = %12.5e\n', err)
 
@@ -30,14 +32,6 @@ plot(C(1,ind(J(1:k))),C(4,ind(J(1:k))),'cx','LineWidth',2)
 return
 end
 
-function [U,J,k] = constructID(Amat,acc)
-
-f = 1.2;
-[U,J] = ID(Amat,'tol', acc, f);
-k = size(U,2);
-
-return
-end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [ww,C,tt,t_sta,t_end] = construct_geom(Npan,Ngau)

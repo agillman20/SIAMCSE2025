@@ -1,74 +1,48 @@
-function proxy_demo
+function ID_test
 
 Npan      = 200;  % The number of Gaussian panels on each smooth component.
 Ngau      = 10;    % The number of Gaussian nodes on each panel.
 
 acc       = 1e-8; % The tolerance in the HSS compression.
 
-radius_rel = 1.75;
-nproxy     = 50;
 
-%%% Set up the geometry and the quadrature weights
-[ww,C] = construct_geom(Npan,Ngau);
+[ww,C,tt,t_sta,t_end] = construct_geom(Npan,Ngau);
 Ntot = size(C,2);
 
 ind = 1751:Ntot;
 
 indoffd = 1:1750;
 
-Aall = construct_A_offd(C,ww,ind,indoffd);
+Aall = LOCAL_construct_A_offd(C,ww,ind,indoffd);
 
-[Cproxy,U,k,J,indnear,indfar] = create_proxy_factor(C,ww,ind,radius_rel,indoffd,nproxy,acc);
 
-err = norm(Aall(J(k+1:end),:)- U.'*Aall(J(1:k),:));
+[U,J,k] = constructID(Aall,acc);
+
+
+keyboard
+err = norm(Aall(J(k+1:end),:)-U.'*Aall(J(1:k),:));
+
+
 
 fprintf(1,'err = %12.5e\n', err)
 
-% create plot
-plot(C(1,ind),C(4,ind),'r-',C(1,indnear),C(4,indnear),'b.',C(1,indfar),C(4,indfar),'k-','LineWidth',4)
+plot(C(1,ind),C(4,ind),'r-','LineWidth',4)
 hold on
-plot(Cproxy(1,:),Cproxy(4,:),'bx','LineWidth',4)
-hold on
+plot(C(1,indoffd),C(4,indoffd),'b-','LineWidth',4)
 plot(C(1,ind(J(1:k))),C(4,ind(J(1:k))),'cx','LineWidth',2)
 
 return
 end
 
-function [Cproxy,U,k,J,indnear,indfar] = create_proxy_factor(C,ww,ind,radius_rel,indoffd,nproxy,acc)
+function [U,J,k] = constructID(Amat,acc)
 
-
-[indnear,indfar,xxc,R] = find_nearfar(C,ind,radius_rel,indoffd);
-
-Cproxy  = construct_circle(xxc, radius_rel*R, nproxy);
-
-A12proxy = [construct_A_offd(C,ww,ind,indnear),...
-    construct_A_cont_prox(C,ind,Cproxy)];
-
-
-[k, J, U] = librla.id_sketch(A12proxy.', acc);
-
+[k, J, U] = librla.id_sketch(Amat.', acc);
 
 return
 end
 
-function [indnear,indfar,xxc,R] = find_nearfar(C,ind,radius_rel,indoffd)
-
-[xxc, R] = get_circum_circle(C(:,ind));
-
-xc = xxc(1);
-yc = xxc(2);
-relind =  ((C(1,indoffd)-xc).^2 + ...
-    (C(4,indoffd)-yc).^2) < ((radius_rel*R)^2) ;
-indnear = indoffd(relind);
-
-relind =  ((C(1,indoffd)-xc).^2 + ...
-    (C(4,indoffd)-yc).^2) >= ((radius_rel*R)^2) ;
-indfar = indoffd(relind);
-
-return
-end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [ww,C] = construct_geom(Npan,Ngau)
+function [ww,C,tt,t_sta,t_end] = construct_geom(Npan,Ngau)
 
 t_sta         = 0;    % Start point of the discretization.
 t_end         = 1; % End   point of the discretization.
@@ -76,60 +50,21 @@ tt_panels     = linspace(t_sta,t_end,Npan+1);
 [tt,ww_gauss] = LOCAL_get_gauss_nodes(tt_panels,Ngau);
 
 C             = zeros(6,length(tt));
-
 C(1,:)        = (1+0.3*cos(5*2*pi*tt)).*cos(2*pi*tt);
 C(2,:)        = 2*pi*(-sin(2*pi*tt).*(0.3*cos(5*2*pi*tt)+1)-1.5*sin(5*2*pi*tt).*cos(2*pi*tt));
+
 C(3,:)        =  (2*pi)^2*(3*sin(2*pi*tt).*sin(5*2*pi*tt)+cos(2*pi*tt).*(-7.8*cos(5*2*pi*tt)-1));
 C(4,:)        =  sin(2*pi*tt).*(1+0.3*cos(5*2*pi*tt));
 C(5,:)        =  2*pi*(-1.5*sin(2*pi*tt).*sin(5*2*pi*tt)+0.3*cos(5*2*pi*tt).*cos(2*pi*tt)+cos(2*pi*tt));
 C(6,:)        = (2*pi)^2*(sin(2*pi*tt).*(-7.8*cos(5*2*pi*tt)-1)-3*sin(5*2*pi*tt).*cos(2*pi*tt));
 
-
 ww            = ww_gauss.*sqrt(C(2,:).*C(2,:) + C(5,:).*C(5,:));
-
 return
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [xxc, R] = get_circum_circle(C)
-
-nloc       = size(C,2);
-
-% First we TRY to create the circle based on the endpoints.
-xxc        = 0.5*(C([1,4],1) + C([1,4],end));
-distsquare = (C(1,:)-xxc(1)).^2 + (C(4,:)-xxc(2)).^2;
-R          = sqrt(max(distsquare));
-
-% The result is an absurdly large circle, then we instead
-% base it on the center of mass of the points.
-if ( (1.2*R*R) > ( (C(1,1) - C(1,end))^2 + (C(4,1) - C(4,end))^2) )
-    xxc        = (1/nloc)*[sum(C(1,:)); sum(C(4,:))];
-    distsquare = (C(1,:)-xxc(1)).^2 + (C(4,:)-xxc(2)).^2;
-    R          = sqrt(max(distsquare));
-end
-
-return
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function C = construct_circle(xxc, R, n)
-
-tt = linspace(0, 2*pi*(1-1/n), n);
-C  = [xxc(1) + R*cos(tt);...
-    - R*sin(tt);...
-    - R*cos(tt);...
-    xxc(2) + R*sin(tt);...
-    + R*cos(tt);...
-    - R*sin(tt)];
-
-return
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function B = construct_A_offd(C,ww,ind1,ind2)
+function B = LOCAL_construct_A_offd(C,ww,ind1,ind2)
 
 n1   = length(ind1);
 n2   = length(ind2);
@@ -143,20 +78,6 @@ B    = B.*(ones(n1,1)*ww(ind2));
 
 return
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function B = construct_A_cont_prox(C,ind,Cprox)
-
-n1   = length(ind);
-n2   = size(Cprox,2);
-dd1  = C(1,ind)' * ones(1,n2) - ones(n1,1) * Cprox(1,:);
-dd2  = C(4,ind)' * ones(1,n2) - ones(n1,1) * Cprox(4,:);
-ddsq = dd1.*dd1 + dd2.*dd2;
-B    = -(1/(4*pi))*log(ddsq);
-
-return
-end
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function [tt,ww] = LOCAL_get_gauss_nodes(tt_panels,Ngau)
