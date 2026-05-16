@@ -17,3 +17,11 @@ A brief list of related materials used to create these tutorials and demo codes 
 - Gillman, Young, Martinsson. "A direct solver with O(N) complexity for integral equations on one-dimensional domains." Frontiers of Mathematics in China 7 (2), 217-247.
 - Martinsson. "Fast direct solvers for elliptic PDEs" Society for Industrial and Applied Mathematics.
 - ['librla:Randomized Linear Algebra Library' ](https://github.com/agillman20/librla)
+
+## License
+
+See License file in the repository.
+
+## Contact
+
+For questions, issues, or contributions, please contact the repository maintainers.
