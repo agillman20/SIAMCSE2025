@@ -24,6 +24,8 @@ err = norm(Aall(J(k+1:end),:)- U.'*Aall(J(1:k),:));
 
 fprintf(1,'err = %12.5e\n', err)
 
+keyboard
+
 % create plot
 plot(C(1,ind),C(4,ind),'r-',C(1,indnear),C(4,indnear),'b.',C(1,indfar),C(4,indfar),'k-','LineWidth',4)
 hold on
